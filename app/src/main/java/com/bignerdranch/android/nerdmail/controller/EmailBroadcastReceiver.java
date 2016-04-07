@@ -14,5 +14,9 @@ public class EmailBroadcastReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Email email = (Email) intent
                 .getSerializableExtra(EmailBroadcaster.EMAIL_EXTRA);
+        if(!email.isSpam()) {
+            Intent emailServiceIntent = EmailService.getNotifyIntent(context, email);
+            context.startService(emailServiceIntent);
+        }
     }
 }
