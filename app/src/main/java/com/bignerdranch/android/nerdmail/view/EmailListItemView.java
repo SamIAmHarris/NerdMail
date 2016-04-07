@@ -59,6 +59,9 @@ public class EmailListItemView extends View  implements View.OnTouchListener {
     float starTop;
     float starLeft;
 
+    float senderY;
+    float subjectY;
+
     public EmailListItemView(Context context) {
         //Call this so we call our other constructor that handles all the setup
         //Call to super would call normal view code when we are handling it
@@ -76,16 +79,18 @@ public class EmailListItemView extends View  implements View.OnTouchListener {
         dividerSize = Math.round(DIVIDER_SIZE * screenDensity);
         paddingSize = Math.round(PADDING_SIZE * screenDensity);
 
-        //scale text size based on screen density and accessibility settings
-        Configuration configuration = context.getResources().getConfiguration();
-        float textScale = configuration.fontScale * screenDensity;
-        largeTextSize = Math.round(LARGE_TEXT_SIZE * textScale);
-        smallTextSize = Math.round(SMALL_TEXT_SIZE * textScale);
+        setUpScaledTextSizes(context.getResources().getConfiguration());
 
         bodyPaddingSize = Math.round(BODY_PADDING_SIZE * screenDensity);
 
         setupPaints();
         setupStarBitmaps();
+    }
+
+    public void setUpScaledTextSizes(Configuration configuration) {
+        float textScale = configuration.fontScale * screenDensity;
+        largeTextSize = Math.round(LARGE_TEXT_SIZE * textScale);
+        smallTextSize = Math.round(SMALL_TEXT_SIZE * textScale);
     }
 
     private void setupStarBitmaps() {
@@ -103,34 +108,53 @@ public class EmailListItemView extends View  implements View.OnTouchListener {
     }
 
     private void setupPaints() {
+        setupBackgroundPaint();
+        setupDividerPaint();
+        setupSenderPaint();
+        setupSubjectPaint();
+        setupBodyPaint();
+        setupStarPaint();
+    }
+
+    private void setupBackgroundPaint() {
         backgroundPaint = new Paint();
         backgroundPaint.setColor(getResources().getColor(R.color.white));
+    }
 
+    private void setupDividerPaint() {
         dividerPaint = new Paint();
         dividerPaint.setColor(getResources().getColor(R.color.divider_color));
+    }
 
-        starPaint = new Paint();
-        int starTint = getResources().getColor(R.color.star_tint);
-        ColorFilter colorFilter = new LightingColorFilter(starTint, 1);
-        starPaint.setColorFilter(colorFilter);
-
+    private void setupSenderPaint() {
         senderAddressTextPaint = new TextPaint();
         senderAddressTextPaint.setTextSize(largeTextSize);
         senderAddressTextPaint.setTextAlign(Paint.Align.LEFT);
         senderAddressTextPaint.setColor(getResources().getColor(R.color.black));
         senderAddressTextPaint.setAntiAlias(true);
+    }
 
+    private void setupSubjectPaint() {
         subjectTextPaint = new TextPaint();
         subjectTextPaint.setTextSize(smallTextSize);
         subjectTextPaint.setTextAlign(Paint.Align.LEFT);
         subjectTextPaint.setColor(getResources().getColor(R.color.black));
         subjectTextPaint.setAntiAlias(true);
+    }
 
+    private void setupBodyPaint() {
         bodyTextPaint = new TextPaint();
         bodyTextPaint.setTextSize(smallTextSize);
         bodyTextPaint.setTextAlign(Paint.Align.LEFT);
         bodyTextPaint.setColor(getResources().getColor(R.color.black));
         bodyTextPaint.setAntiAlias(true);
+    }
+
+    private void setupStarPaint() {
+        starPaint = new Paint();
+        int starTint = getResources().getColor(R.color.star_tint);
+        ColorFilter colorFilter = new LightingColorFilter(starTint, 1);
+        starPaint.setColorFilter(colorFilter);
     }
 
     public void setEmail(Email email) {
@@ -167,35 +191,45 @@ public class EmailListItemView extends View  implements View.OnTouchListener {
         int height = canvas.getHeight();
         int width = canvas.getWidth();
 
-        //draw paint to clear canvas
         canvas.drawPaint(backgroundPaint);
 
-        //Draw the divider across the bottom of the canvas
+        drawDivider(canvas, height, width);
+        drawSenderAddress(canvas);
+        drawSubject(canvas);
+        drawBody(canvas);
+        drawStar(canvas);
+    }
+
+
+    private void drawDivider(Canvas canvas, int height, int width) {
         float dividerY = height - (dividerSize/2);
         canvas.drawLine(0, dividerY, width, dividerY, dividerPaint);
+    }
 
-        //Draw the sender address
+    private void drawSenderAddress(Canvas canvas) {
         Paint.FontMetrics fm = senderAddressTextPaint.getFontMetrics();
         float senderX = paddingSize;
         float senderTop = (float) Math.ceil(Math.abs(fm.top));
         float senderBottom = (float) Math.ceil(Math.abs(fm.bottom));
         float senderBaseline = paddingSize + senderTop;
-        float senderY = senderBaseline + senderBottom;
+        senderY = senderBaseline + senderBottom;
 
         canvas.drawText(email.getSenderAddress(), senderX, senderBaseline, senderAddressTextPaint);
+    }
 
-        //Draw the subject
+    private void drawSubject(Canvas canvas) {
         Paint.FontMetrics subjectFm = subjectTextPaint.getFontMetrics();
         float subjectX = paddingSize;
         float subjectTop = (float) Math.ceil(Math.abs(subjectFm.top));
         float subjectBottom = (float) Math.ceil(Math.abs(subjectFm.bottom));
         float subjectBaseline = senderY + subjectTop;
-        float subjectY = subjectBaseline + subjectBottom;
+        subjectY = subjectBaseline + subjectBottom;
 
         canvas.drawText(email.getSubject(), subjectX, subjectBaseline,
                 subjectTextPaint);
+    }
 
-        //Draw the body
+    private void drawBody(Canvas canvas) {
         Paint.FontMetrics bodyFm = bodyTextPaint.getFontMetrics();
         float bodyX = paddingSize;
         float bodyTop = (float) Math.ceil(Math.abs(bodyFm.top));
@@ -251,8 +285,9 @@ public class EmailListItemView extends View  implements View.OnTouchListener {
                 canvas.drawText(bodyLines[1], bodyX, bodySecondBaseline, bodyTextPaint);
             }
         }
+    }
 
-        //Draw the star
+    private void drawStar(Canvas canvas) {
         starLeft = getWidth() - paddingSize - starPixelSize;
         float starHeight = getHeight() - senderY - dividerSize;
         starTop = (starHeight/2) + senderY - (starPixelSize/2);
@@ -263,6 +298,7 @@ public class EmailListItemView extends View  implements View.OnTouchListener {
             canvas.drawBitmap(unimportantStar, starLeft, starTop, starPaint);
         }
     }
+
 
     private int calculateHeight() {
         int layoutPadding = getPaddingTop() + getPaddingBottom();
@@ -287,11 +323,11 @@ public class EmailListItemView extends View  implements View.OnTouchListener {
     }
 
     private int calculateWidth() {
+        //use window width if unspecified
         Point size = new Point();
         WindowManager windowManager = (WindowManager) getContext()
                 .getSystemService(Context.WINDOW_SERVICE);
         windowManager.getDefaultDisplay().getSize(size);
-        //use window width if unspecified
         return size.x;
     }
 
